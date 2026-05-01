@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Maia Local — client-side inference</title>
+
+  <!-- Chessground vendored CSS (board + brown theme + cburnett pieces as inline data URIs) -->
+  <link rel="stylesheet" href="./vendor/chessground.base.css" />
+  <link rel="stylesheet" href="./vendor/chessground.brown.css" />
+  <link rel="stylesheet" href="./vendor/chessground.cburnett.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Maia Local</h1>
+    <span class="sub">Client-side Maia3 inference · runs fully in the browser</span>
+  </header>
+
+  <main>
+    <section class="board-pane">
+      <div id="board" class="cg-wrap"></div>
+      <div class="board-controls">
+        <label>FEN:
+          <input id="fen" type="text" spellcheck="false"
+                 value="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" />
+        </label>
+        <div class="row">
+          <button id="set-fen">Set FEN</button>
+          <button id="reset">Reset</button>
+          <button id="flip">Flip</button>
+          <button id="undo">Undo</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="side-pane">
+      <div class="panel">
+        <h3>Maia 3 model</h3>
+        <div class="row">
+          <button id="download">Download / load model</button>
+          <button id="clear-cache" title="Delete cached weights from IndexedDB">Clear cache</button>
+        </div>
+        <div class="status">
+          <span id="status" class="pill">idle</span>
+          <progress id="progress" max="100" value="0"></progress>
+        </div>
+        <div id="storage-info" class="muted"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Inference</h3>
+        <div class="row">
+          <label>Self ELO
+            <select id="self-elo"></select>
+          </label>
+          <label>Opponent ELO
+            <select id="oppo-elo"></select>
+          </label>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="auto-run" checked /> Auto-run on move / FEN change</label>
+        </div>
+        <div class="row">
+          <button id="run" disabled>Run inference</button>
+          <span id="timing" class="muted"></span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Position evaluation</h3>
+        <div class="eval-bar">
+          <div id="eval-white" class="eval-white" style="width:50%"></div>
+        </div>
+        <div id="eval-text" class="muted">—</div>
+      </div>
+
+      <div class="panel">
+        <h3>Maia move probabilities</h3>
+        <table id="moves">
+          <thead><tr><th>Move</th><th>Prob</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

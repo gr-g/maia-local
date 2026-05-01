@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Maia Local — Endgame Training</title>
+  <link rel="stylesheet" href="./vendor/chessground.base.css" />
+  <link rel="stylesheet" href="./vendor/chessground.brown.css" />
+  <link rel="stylesheet" href="./vendor/chessground.cburnett.css" />
+  <link rel="stylesheet" href="./styles.css" />
+  <style>
+    .game-banner { display: flex; gap: 1rem; align-items: center; padding: 0.6rem 0.9rem; border-radius: 6px; background: #262626; border: 1px solid #333; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .game-banner .tag { background: #333; padding: 0.15rem 0.55rem; border-radius: 4px; font-size: 0.75rem; letter-spacing: 0.4px; text-transform: uppercase; }
+    .result-overlay { padding: 0.7rem 1rem; border-radius: 6px; margin-top: 0.5rem; font-weight: 600; }
+    .result-win  { background: #224c2b; border: 1px solid #3b8048; }
+    .result-fail { background: #5c2626; border: 1px solid #a04040; }
+    .result-warn { background: #5c4a26; border: 1px solid #a08040; }
+    #move-log { max-height: 220px; overflow: auto; font-family: monospace; font-size: 0.82rem; }
+    #move-log .pair { display: flex; gap: 0.4rem; }
+    #move-log .num { color: #888; min-width: 2.5em; }
+    .small-link { color: #8ab; text-decoration: none; font-size: 0.82rem; }
+    .small-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Endgame Training</h1>
+    <span class="sub">Play vs Maia · tablebase-perfect opponent</span>
+    <span style="flex:1"></span>
+    <a class="small-link" href="./">← Back to play</a>
+  </header>
+
+  <main>
+    <section class="board-pane">
+      <div class="game-banner">
+        <span class="tag" id="tag-player">Player: –</span>
+        <span class="tag" id="tag-target">Target: –</span>
+        <span style="flex:1"></span>
+        <span id="turn-indicator" class="muted">–</span>
+      </div>
+
+      <div id="board" class="cg-wrap"></div>
+
+      <div class="board-controls">
+        <div class="row">
+          <button id="retry">Retry position</button>
+          <button id="flip">Flip board</button>
+          <a id="lichess-analysis" class="small-link" target="_blank" rel="noopener"
+             style="padding:0.4rem 0.8rem; background:#444; border:1px solid #555; border-radius:4px; color:#fff;">Open in Lichess analysis ↗</a>
+        </div>
+        <div id="result" style="display:none"></div>
+      </div>
+    </section>
+
+    <section class="side-pane">
+      <div class="panel">
+        <h3>Maia 3 model</h3>
+        <div class="status">
+          <span id="status" class="pill">idle</span>
+          <progress id="progress" max="100" value="0"></progress>
+        </div>
+        <div class="row">
+          <button id="download">Download / load model</button>
+        </div>
+        <div id="storage-info" class="muted"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Status</h3>
+        <div id="tb-info" class="muted">–</div>
+        <div id="maia-info" class="muted"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Move log</h3>
+        <div id="move-log"></div>
+      </div>
+
+      <div class="panel">
+        <h3>URL parameters</h3>
+        <div class="muted" style="font-size:0.8rem;">
+          Expected: <code>?player=white|black&amp;startFen=FEN&amp;target=checkmate|draw</code>.
+        </div>
+        <div class="muted" id="parsed-params"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./endgame_training.js"></script>
+</body>
+</html>
