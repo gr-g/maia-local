@@ -64,7 +64,7 @@ export function classifyMoves(tb) {
   else if (drawMoves.length) { bestMoves = drawMoves; summary = 'drawing'; }
   else                       { bestMoves = tb.moves;  summary = losMoves.length ? 'losing' : null; }
   return {
-    bestMoves: bestMoves.map(m => m.uci),
+    bestMoves: bestMoves.map(m => ({ uci: m.uci, dtz: m.dtz })),
     summary,
     allMoves: tb.moves,
   };

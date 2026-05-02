@@ -315,7 +315,21 @@ async function pickOpponentMove(classification, maia) {
   const legal = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
   if (!legal.length) return null;
 
-  const subset = (classification.bestMoves && classification.bestMoves.length) ? classification.bestMoves : legal;
+  let subset = legal;
+  if (classification.bestMoves && classification.bestMoves.length) {
+    const moves = classification.bestMoves; // Array of {uci, dtz}
+    
+    if (classification.summary === 'losing') {
+      // Maia is losing: filter to keep moves that delay the end (maximize DTZ)
+      const maxDtz = Math.max(...moves.map(m => m.dtz));
+      const filtered = moves.filter(m => m.dtz > maxDtz - 10);
+      subset = filtered.map(m => m.uci);
+    } else {
+      // Maia is winning or drawing: take all best moves
+      subset = moves.map(m => m.uci);
+    }
+  }
+
   // Restrict Maia policy to subset and sample
   const restricted = restrictPolicy(maia.policy, subset);
   const picked = samplePolicy(restricted);
