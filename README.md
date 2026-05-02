@@ -6,7 +6,7 @@ Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objec
 
 ## Model source
 
-On first use (click **Download / load model**) the page fetches:
+On first use (click **Download model**) the page fetches:
 
 ```
 https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx
@@ -40,7 +40,7 @@ python3 -m http.server 8765
 ```
 
 On first load:
-1. Click **Download / load model** (~44 MB from raw.githubusercontent.com, cached in IndexedDB)
+1. Click **Download model** (~44 MB from raw.githubusercontent.com, cached in IndexedDB)
 2. Status pill turns **ready**
 3. Make a move or set a FEN — if auto-run is checked, inference runs automatically
 

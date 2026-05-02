@@ -248,7 +248,7 @@ async function doOpponentMove() {
   try {
     // Wait for engine ready, or fallback to random legal if it never comes
     if (!engine.ready) {
-      $('maia-info').textContent = 'Waiting for Maia model… click "Download / load model" if idle.';
+      $('maia-info').textContent = 'Waiting for Maia model… click "Download model" if idle.';
       oppoThinking = false; updateTurnIndicator();
       return;
     }
