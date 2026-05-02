@@ -194,6 +194,25 @@ export class MaiaEngine extends EventTarget {
     return processOutputs(logitsMove, logitsValue, legalMoves, blackToMove);
   }
 
+  async isCacheEmpty() {
+    try {
+      return await new Promise((resolve) => {
+        const req = indexedDB.open('MaiaModels', 1);
+        req.onerror = () => resolve(true);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('models')) { db.close(); resolve(true); return; }
+          const tx = db.transaction(['models'], 'readonly');
+          const store = tx.objectStore('models');
+          const countReq = store.count();
+          countReq.onsuccess = () => { db.close(); resolve(countReq.result === 0); };
+          countReq.onerror = () => { db.close(); resolve(true); };
+        };
+        req.onupgradeneeded = (e) => { e.target.transaction.abort(); resolve(true); };
+      });
+    } catch { return true; }
+  }
+
   async clearCache() {
     await new Promise((res, rej) => {
       const req = indexedDB.deleteDatabase('MaiaModels');

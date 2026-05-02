@@ -192,6 +192,7 @@ const engine = new MaiaEngine();
 engine.addEventListener('status', e => {
   $('status').textContent = e.detail;
   $('status').className = 'pill ' + e.detail;
+  $('download').disabled = e.detail === 'ready' || e.detail === 'downloading';
   // When model is ready and it's the opponent's move at start, kick off opponent turn
   if (e.detail === 'ready' && !userTurn() && !gameOver) scheduleOpponentMove();
 });
@@ -199,12 +200,20 @@ engine.addEventListener('progress', e => { $('progress').value = e.detail; });
 engine.addEventListener('error', e => { $('maia-info').textContent = 'Worker error: ' + e.detail; });
 
 $('download').onclick = async () => {
-  try { await engine.download(); await refreshStorageInfo(); }
+  try { await engine.download(); await refreshStorageInfo(); if (!userTurn() && !gameOver) scheduleOpponentMove(); }
   catch (err) { $('maia-info').textContent = 'Download failed: ' + err.message; }
 };
 
+async function clearCache() {
+  await engine.clearCache();
+  $('maia-info').textContent = 'Cache cleared. Reload page to re-init.';
+  await refreshStorageInfo();
+}
+$('clear-cache').onclick = clearCache;
+
 async function refreshStorageInfo() {
   try {
+    $('clear-cache').disabled = await engine.isCacheEmpty();
     const est = await navigator.storage?.estimate?.();
     if (est) $('storage-info').textContent =
       `IndexedDB usage: ${(est.usage/1e6).toFixed(1)} MB of ${(est.quota/1e6).toFixed(0)} MB quota`;

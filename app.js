@@ -69,6 +69,7 @@ function setStatus(status) {
   el.textContent = status;
   el.className = 'pill ' + status;
   $('run').disabled = status !== 'ready';
+  $('download').disabled = status === 'ready' || status === 'downloading';
 }
 
 function renderResult(res) {
@@ -139,6 +140,7 @@ $('download').onclick = async () => {
 $('clear-cache').onclick = async () => {
   await engine.clearCache();
   $('storage-info').textContent = 'Cache cleared. Reload page to re-init.';
+  await refreshStorageInfo();
 };
 $('run').onclick = runInference;
 $('reset').onclick = () => { chess.reset(); syncBoard(); $('fen').value = chess.fen(); maybeAutoRun(); };
@@ -154,6 +156,7 @@ $('fen').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('set-fen'
 
 async function refreshStorageInfo() {
   try {
+    $('clear-cache').disabled = await engine.isCacheEmpty();
     const est = await navigator.storage?.estimate?.();
     if (est) $('storage-info').textContent =
       `IndexedDB usage: ${(est.usage/1e6).toFixed(1)} MB of ${(est.quota/1e6).toFixed(0)} MB quota`;
