@@ -273,13 +273,8 @@ async function doOpponentMove() {
       let userFail = null;
       if (oppOutcome === 'win')  userFail = 'You are in a losing position.';
       else if (oppOutcome === 'draw' && target === 'checkmate') userFail = 'Opponent can force a draw — no checkmate possible from here.';
-      if (userFail) {
-        // Animate opponent's move before showing fail overlay
-        const oppMoveUci = await pickOpponentMove(classification, maia);
-        if (oppMoveUci) applyOpponentMove(oppMoveUci);
-        endGame('fail', userFail);
-        return;
-      }
+      if (userFail) showResult('fail', userFail);
+      else hideResult();
     } else {
       tbError = tb?.__err?.message || 'outside 7-piece coverage';
       $('tb-info').textContent = `Tablebase unavailable (${tbError}); opponent falls back to plain Maia sampling, fail detection disabled.`;
