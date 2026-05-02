@@ -398,7 +398,12 @@ async function pickOpponentMove(classification, maia) {
   if (picked && legal.includes(picked)) {
     // Show moves from restricted policy for transparency
     const top = Object.entries(restricted).sort((a,b) => b[1]-a[1])
-      .map(([m,p]) => `${m} ${(p*100).toFixed(1)}%`).join(' · ');
+      .map(([uci,p]) => {
+        const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
+        const san = move ? move.san : uci;
+        if (move) chess.undo();
+        return `${san} ${(p*100).toFixed(1)}%`;
+      }).join(' · ');
     $('maia-info').textContent = `Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
     return picked;
   }

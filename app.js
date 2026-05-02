@@ -83,9 +83,13 @@ function renderResult(res) {
   const entries = Object.entries(res.policy).slice(0, 15);
   const maxP = entries.length ? entries[0][1] : 1;
   for (const [uci, p] of entries) {
+    const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
+    const san = move ? move.san : uci;
+    if (move) chess.undo(); // Revert the test move
+
     const tr = document.createElement('tr');
     const barWidth = (p / maxP) * 120;
-    tr.innerHTML = `<td>${uci}</td><td>${(p*100).toFixed(2)}%</td><td><span class="prob-bar" style="width:${barWidth}px"></span></td>`;
+    tr.innerHTML = `<td>${san}</td><td>${(p*100).toFixed(2)}%</td><td><span class="prob-bar" style="width:${barWidth}px"></span></td>`;
     tbody.appendChild(tr);
   }
   if (entries.length > 0) {
