@@ -45,19 +45,9 @@ On first load:
 3. Make a move or set a FEN — if auto-run is checked, inference runs automatically
 
 ## Performance notes
+The project uses [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker) to enable Cross-Origin Isolation (COOP/COEP) via a client-side service worker. This allows `SharedArrayBuffer` support even on restricted hosts like GitHub Pages, enabling **multi-threaded WebAssembly** performance.
 
-ONNX Runtime Web forced to run **single-threaded** (`numThreads = 1`): avoids `SharedArrayBuffer` / COOP-COEP headers that GitHub Pages cannot set.
-
-Because threading is disabled, inference runs on a single WASM thread. In practice, with SIMD enabled (ORT auto-detects), a single forward pass of Maia 3 takes roughly:
-
-| Hardware | Threaded | Single-threaded |
-| --- | --- | --- |
-| Modern desktop CPU | ~200–350 ms | ~500–1000 ms |
-| Mid-range laptop | ~350–600 ms | ~900–1800 ms |
-
-If you need threaded performance and control the host, use Cloudflare Pages / Netlify / Vercel with COOP+COEP headers, then revert `numThreads` in `maia-worker.js`.
-
-Alternatively, you can drop in a COOP/COEP service-worker shim such as [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker) before `app.js` loads; this enables `SharedArrayBuffer` on GitHub Pages via a client-side service worker and re-enables full threading.
+In practice, with SIMD and multi-threading enabled, a single forward pass of Maia 3 typically takes **~200–400 ms** on modern hardware.
 
 ## Architecture
 
