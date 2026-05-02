@@ -21,26 +21,31 @@ const $ = id => document.getElementById(id);
 const MAIA_ELO = 2000;
 const STARTPOS = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
-// ── URL params ───────────────────────────────────────────────────────────────
-const params = new URLSearchParams(location.search);
-const playerColor = (params.get('player') || 'white').toLowerCase() === 'black' ? 'black' : 'white';
-const startFen    = (params.get('startFen') || '').trim() || STARTPOS;
-const target      = (params.get('target') || 'checkmate').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
-
-$('tag-player').textContent = `Player: ${playerColor}`;
-$('tag-target').textContent = `Target: ${target}`;
-
 // ── State ────────────────────────────────────────────────────────────────────
+let playerColor, startFen, target;
 let chess = new Chess();
 let ground = null;
 let gameOver = false;
 let oppoThinking = false;
+const moveHistorySan = [];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const turnColor = c => c.turn() === 'w' ? 'white' : 'black';
 const userIsWhite = () => playerColor === 'white';
 const userColor = () => playerColor;
 const userTurn = () => turnColor(chess) === userColor();
+
+function parseParams() {
+  const params = new URLSearchParams(location.search);
+  playerColor = (params.get('player') || 'white').toLowerCase() === 'black' ? 'black' : 'white';
+  startFen    = (params.get('startFen') || '').trim();
+  target      = (params.get('target') || 'draw').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
+}
+
+function updateTags() {
+  $('tag-player').textContent = `Player: ${playerColor}`;
+  $('tag-target').textContent = `Target: ${target}`;
+}
 
 function legalDests(c) {
   const d = new Map();
@@ -165,7 +170,6 @@ function showResult(kind, text) {
 }
 function hideResult() { $('result').style.display = 'none'; }
 
-const moveHistorySan = [];
 function logMove(san, by) {
   moveHistorySan.push({ san, by });
   const log = $('move-log');
@@ -198,6 +202,7 @@ $('download').onclick = async () => {
   try { await engine.download(); await refreshStorageInfo(); }
   catch (err) { $('maia-info').textContent = 'Download failed: ' + err.message; }
 };
+
 async function refreshStorageInfo() {
   try {
     const est = await navigator.storage?.estimate?.();
@@ -207,30 +212,62 @@ async function refreshStorageInfo() {
 }
 refreshStorageInfo();
 
-// ── Ground + initial position ────────────────────────────────────────────────
-try { chess.load(startFen); }
-catch (err) {
-  showResult('fail', `Invalid startFen: ${err.message}`);
-  // Fall back to startpos so user sees something
+// ── Game lifecycle ───────────────────────────────────────────────────────────
+function resetGame() {
   chess = new Chess();
+  try { chess.load(startFen); } catch (err) {
+    showResult('fail', `Invalid startFen: ${err.message}`);
+    chess = new Chess();
+  }
+
+  moveHistorySan.length = 0;
+  $('move-log').innerHTML = '';
+  $('tb-info').textContent = '–';
+  $('maia-info').textContent = '';
+  gameOver = false;
+  hideResult();
+
+  if (ground) {
+    ground.set({
+      fen: chess.fen(),
+      orientation: playerColor,
+      turnColor: turnColor(chess),
+      lastMove: undefined
+    });
+  }
+  syncBoard();
+  // If the start position has the opponent to move, schedule their move
+  if (!userTurn() && engine.ready) scheduleOpponentMove();
 }
 
-ground = Chessground($('board'), {
-  fen: chess.fen(),
-  orientation: playerColor,
-  turnColor: turnColor(chess),
-  movable: {
-    free: false,
-    color: userColor(),
-    dests: legalDests(chess),
-    events: { after: onUserMove },
-  },
-  draggable: { showGhost: true },
-  highlight: { lastMove: true, check: true },
-  animation: { duration: 200 },
-  drawable: { enabled: true },
-});
-syncBoard();
+async function pickRandomEndgame(updateUrl = true) {
+  try {
+    const resp = await fetch('endgames.csv');
+    const text = await resp.text();
+    const lines = text.trim().split('\n').slice(1); // skip header
+    if (lines.length === 0) return;
+    const randomLine = lines[Math.floor(Math.random() * lines.length)];
+    const [fen, tgt] = randomLine.split(',');
+
+    const fenParts = fen.split(' ');
+    playerColor = fenParts[1] === 'w' ? 'white' : 'black';
+    startFen = fen;
+    target = (tgt || 'draw').trim().toLowerCase();
+
+    if (updateUrl) {
+      const url = new URL(window.location);
+      url.searchParams.set('startFen', startFen);
+      url.searchParams.set('target', target);
+      url.searchParams.set('player', playerColor);
+      window.history.pushState({}, '', url);
+    }
+
+    updateTags();
+    resetGame();
+  } catch (err) {
+    console.error('Failed to load endgames:', err);
+  }
+}
 
 // ── User move handling ──────────────────────────────────────────────────────
 async function onUserMove(orig, dest) {
@@ -375,22 +412,38 @@ function endGame(kind, reason) {
   showResult(kind, `${prefix} ${reason}`);
 }
 
-// ── Controls ────────────────────────────────────────────────────────────────
-$('retry').onclick = () => {
-  chess = new Chess();
-  try { chess.load(startFen); } catch { /* invalid start already warned */ }
-  moveHistorySan.length = 0;
-  $('move-log').innerHTML = '';
-  $('tb-info').textContent = '–';
-  $('maia-info').textContent = '';
-  gameOver = false;
-  hideResult();
-  ground.set({ fen: chess.fen(), turnColor: turnColor(chess), lastMove: undefined });
-  syncBoard();
-  // If the start position has the opponent to move, schedule their move
-  if (!userTurn() && engine.ready) scheduleOpponentMove();
-};
-$('flip').onclick = () => ground.toggleOrientation();
+// ── Initialization ───────────────────────────────────────────────────────────
+parseParams();
+if (!startFen) {
+  await pickRandomEndgame(true);
+} else {
+  updateTags();
+}
 
-// If startFen has opponent to move and engine is already ready when load settles:
-if (!userTurn() && engine.ready) scheduleOpponentMove();
+try { chess.load(startFen || STARTPOS); }
+catch (err) {
+  showResult('fail', `Invalid startFen: ${err.message}`);
+  chess = new Chess();
+}
+
+ground = Chessground($('board'), {
+  fen: chess.fen(),
+  orientation: playerColor,
+  turnColor: turnColor(chess),
+  movable: {
+    free: false,
+    color: userColor(),
+    dests: legalDests(chess),
+    events: { after: onUserMove },
+  },
+  draggable: { showGhost: true },
+  highlight: { lastMove: true, check: true },
+  animation: { duration: 200 },
+  drawable: { enabled: true },
+});
+syncBoard();
+
+// ── Controls ────────────────────────────────────────────────────────────────
+$('retry').onclick = resetGame;
+$('random-endgame').onclick = () => pickRandomEndgame(true);
+$('flip').onclick = () => ground.toggleOrientation();
