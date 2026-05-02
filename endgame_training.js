@@ -5,7 +5,7 @@
 //
 // Game loop:
 //   1. user moves
-//   2. check local user-win conditions (mate / trivial endgame / stalemate / 3fr / 50-move / insufficient material)
+//   2. check local user-success conditions (mate / trivial endgame / stalemate / 3fr / 50-move / insufficient material)
 //   3. tablebase query on post-user-move FEN
 //   4. fail check from root category
 //   5. animate opponent's move (picked from tablebase best-category subset ∩ Maia policy)
@@ -83,7 +83,7 @@ function updateLichessLink() {
   $('lichess-analysis').href = `https://lichess.org/analysis/standard/${fen}`;
 }
 
-// ── Material-based trivial-endgame detection (for target=checkmate user-win) ─
+// ── Material-based trivial-endgame detection (for target=checkmate user-success) ─
 function pieceCounts(fen) {
   const pos = fen.split(' ')[0];
   const c = { P:0,N:0,B:0,R:0,Q:0,K:0, p:0,n:0,b:0,r:0,q:0,k:0 };
@@ -104,7 +104,7 @@ function isTrivialEndgameFor(userIsWhiteSide, fen) {
   return userHasMajor;
 }
 
-// ── Local user-win / draw detection (no tablebase needed) ────────────────────
+// ── Local user-success / draw detection (no tablebase needed) ────────────────────
 function checkUserWin() {
   const fen = chess.fen();
   const halfMove = parseInt(fen.split(' ')[4] || '0');
@@ -112,29 +112,29 @@ function checkUserWin() {
     if (chess.isCheckmate()) {
       // It's whoever-just-moved who delivered mate. If the person now to move
       // is NOT the user, then the user just delivered mate.
-      if (!userTurn()) return { outcome: 'win', reason: 'Checkmate!' };
+      if (!userTurn()) return { outcome: 'success', reason: 'Checkmate!' };
       return { outcome: 'fail', reason: 'You were checkmated.' };
     }
     // Only check trivial-endgame conversion AFTER the opponent moves (i.e. when
     // it's the user's turn again), so the opponent has had a chance to capture a
     // hanging major piece.
     if (userTurn() && isTrivialEndgameFor(userIsWhite(), fen)) {
-      return { outcome: 'win', reason: 'Converted to a winning endgame.' };
+      return { outcome: 'success', reason: 'Converted to a winning endgame.' };
     }
     // Local draw checks are failures for the checkmate target
     if (chess.isStalemate())           return { outcome: 'fail', reason: 'Stalemate.' };
     if (chess.isInsufficientMaterial())return { outcome: 'fail', reason: 'Insufficient material.' };
     if (chess.isThreefoldRepetition()) return { outcome: 'fail', reason: 'Threefold repetition.' };
-    if (halfMove >= 100)               return { outcome: 'fail', reason: '50-move rule.' };
+    if (halfMove >= 100)               return { outcome: 'fail', reason: '50 moves.' };
   } else { // target === 'draw'
     if (chess.isCheckmate()) {
       if (!userTurn()) return { outcome: 'fail', reason: 'You delivered checkmate — not a draw.' };
       return { outcome: 'fail', reason: 'You were checkmated.' };
     }
-    if (chess.isStalemate())           return { outcome: 'win', reason: 'Stalemate.' };
-    if (chess.isInsufficientMaterial())return { outcome: 'win', reason: 'Insufficient material.' };
-    if (chess.isThreefoldRepetition()) return { outcome: 'win', reason: 'Threefold repetition.' };
-    if (halfMove >= 100)               return { outcome: 'win', reason: '50-move rule.' };
+    if (chess.isStalemate())           return { outcome: 'success', reason: 'Stalemate.' };
+    if (chess.isInsufficientMaterial())return { outcome: 'success', reason: 'Insufficient material.' };
+    if (chess.isThreefoldRepetition()) return { outcome: 'success', reason: 'Threefold repetition.' };
+    if (halfMove >= 100)               return { outcome: 'success', reason: '50 moves.' };
   }
   return null;
 }
@@ -143,7 +143,7 @@ function checkUserWin() {
 function showResult(kind, text) {
   const el = $('result');
   el.style.display = 'block';
-  el.className = 'result-overlay ' + (kind === 'win' ? 'result-win' : kind === 'fail' ? 'result-fail' : 'result-warn');
+  el.className = 'result-overlay ' + (kind === 'success' ? 'result-success' : kind === 'fail' ? 'result-fail' : 'result-warn');
   el.textContent = text;
 }
 function hideResult() { $('result').style.display = 'none'; }
@@ -223,7 +223,7 @@ async function onUserMove(orig, dest) {
   logMove(mv.san, 'user');
   syncBoard();
 
-  // 1. Local user-win check
+  // 1. Local user-success check
   const localOutcome = checkUserWin();
   if (localOutcome) {
     endGame(localOutcome.outcome, localOutcome.reason);
@@ -332,7 +332,7 @@ function endGame(kind, reason) {
   gameOver = true;
   setMovableOnlyForUser();
   updateTurnIndicator();
-  const prefix = kind === 'win' ? '✓ Success!' : kind === 'fail' ? '✗ Failed.' : '⚠';
+  const prefix = kind === 'success' ? '✓ Success!' : kind === 'fail' ? '✗ Failed.' : '⚠';
   showResult(kind, `${prefix} ${reason}`);
 }
 
