@@ -264,7 +264,8 @@ async function doOpponentMove() {
     if (tb && !tb.__err) {
       classification = classifyMoves(tb);
       const oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
-      $('tb-info').textContent = `Tablebase: opponent-to-move outcome = ${oppOutcome}, best-move category = ${classification.bestCategory || 'n/a'}, ${classification.allMoves.length} legal moves covered.`;
+      const oppSummary = (oppOutcome === 'win') ? 'winning' : (oppOutcome === 'draw') ? 'drawing' : (oppOutcome === 'loss') ? 'losing' : ''
+      $('tb-info').textContent = `Tablebase queried: opponent position is ${oppSummary || 'n/a'}.`;
 
       // Fail check from Q.category (opponent POV). User's POV is inverted:
       //   opp=win  → user is losing     → fail always
@@ -311,10 +312,10 @@ async function pickOpponentMove(classification, maia) {
   const restricted = restrictPolicy(maia.policy, subset);
   const picked = samplePolicy(restricted);
   if (picked && legal.includes(picked)) {
-    // Show top-5 from restricted policy for transparency
-    const top = Object.entries(restricted).sort((a,b) => b[1]-a[1]).slice(0,5)
+    // Show moves from restricted policy for transparency
+    const top = Object.entries(restricted).sort((a,b) => b[1]-a[1])
       .map(([m,p]) => `${m} ${(p*100).toFixed(1)}%`).join(' · ');
-    $('maia-info').textContent = `Maia restricted to ${subset.length} ${classification.bestCategory || 'legal'} move(s): ${top}`;
+    $('maia-info').textContent = `Maia chose among ${subset.length} ${oppSummary || 'legal'} move(s): ${top}`;
     return picked;
   }
   // Fallback: uniform-random over legal
