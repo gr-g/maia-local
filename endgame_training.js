@@ -15,6 +15,7 @@ import { Chessground } from 'https://esm.sh/chessground@9';
 import { Chess }       from 'https://esm.sh/chess.js@1.0.0-beta.8';
 import { MaiaEngine, loadVocab, restrictPolicy, samplePolicy } from './engine.js';
 import { queryTablebase, classifyMoves, rootOutcome } from './tablebase.js';
+import { askPromotion } from './promotion.js';
 
 const $ = id => document.getElementById(id);
 const MAIA_ELO = 2000;
@@ -218,7 +219,20 @@ syncBoard();
 // ── User move handling ──────────────────────────────────────────────────────
 async function onUserMove(orig, dest) {
   if (gameOver) return;
-  const mv = chess.move({ from: orig, to: dest, promotion: 'q' });
+  const piece = chess.get(orig);
+  const isPromo = piece && piece.type === 'p' &&
+                  ((piece.color === 'w' && dest[1] === '8') ||
+                   (piece.color === 'b' && dest[1] === '1'));
+
+  let promo = 'q';
+  if (isPromo) {
+    // Freeze the board while the overlay is up.
+    ground.set({ movable: { color: undefined, dests: new Map() } });
+    promo = await askPromotion($('board').parentElement, dest, piece.color, ground.state.orientation);
+    if (!promo) { syncBoard(); return; }
+  }
+
+  const mv = chess.move({ from: orig, to: dest, promotion: promo });
   if (!mv) { syncBoard(); return; }
   logMove(mv.san, 'user');
   syncBoard();

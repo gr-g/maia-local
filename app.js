@@ -2,6 +2,7 @@
 import { Chessground } from 'https://esm.sh/chessground@9';
 import { Chess }       from 'https://esm.sh/chess.js@1.0.0-beta.8';
 import { MaiaEngine, loadVocab } from './engine.js';
+import { askPromotion } from './promotion.js';
 
 const $ = (id) => document.getElementById(id);
 const chess = new Chess();
@@ -29,8 +30,21 @@ function syncBoard() {
   });
 }
 
-function onMove(orig, dest) {
-  const m = chess.move({ from: orig, to: dest, promotion: 'q' });
+async function onMove(orig, dest) {
+  const piece = chess.get(orig);
+  const isPromo = piece && piece.type === 'p' &&
+                  ((piece.color === 'w' && dest[1] === '8') ||
+                   (piece.color === 'b' && dest[1] === '1'));
+
+  let promo = 'q';
+  if (isPromo) {
+    // Freeze user input while the overlay is up.
+    ground.set({ movable: { color: undefined } });
+    promo = await askPromotion($('board').parentElement, dest, piece.color, ground.state.orientation);
+    if (!promo) { syncBoard(); return; }
+  }
+
+  const m = chess.move({ from: orig, to: dest, promotion: promo });
   if (!m) { syncBoard(); return; }
   syncBoard();
   $('fen').value = chess.fen();

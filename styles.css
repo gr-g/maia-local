@@ -7,7 +7,8 @@ main { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(320px, 44
 @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
 
 .board-pane { display: flex; flex-direction: column; gap: 0.75rem; }
-#board { width: 100%; aspect-ratio: 1/1; max-width: 640px; }
+.board-wrap { position: relative; width: 100%; aspect-ratio: 1/1; max-width: 640px; }
+#board { width: 100%; height: 100%; }
 .board-controls { display: flex; flex-direction: column; gap: 0.5rem; }
 .board-controls input[type=text] { width: 100%; font-family: monospace; font-size: 0.85rem; padding: 0.4rem; background: #2a2a2a; color: #eee; border: 1px solid #444; border-radius: 4px; }
 
@@ -38,3 +39,22 @@ select, input[type=text] { background: #2a2a2a; color: #eee; border: 1px solid #
 #moves td:first-child { font-family: monospace; font-weight: 600; }
 #moves td:nth-child(2) { font-variant-numeric: tabular-nums; }
 .prob-bar { display: inline-block; height: 6px; background: #3a8fd8; border-radius: 2px; vertical-align: middle; }
+
+/* Promotion overlay */
+.promotion-overlay { position: absolute; inset: 0; z-index: 10; }
+.promotion-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); cursor: pointer; }
+.promotion-stack { position: absolute; z-index: 1; }
+.promotion-cell {
+  position: absolute; left: 0; width: 100%; height: 25%;
+  display: flex; align-items: center; justify-content: center;
+  background: #f0f0f0; color: #222;
+  border: 2px solid #3a8fd8; border-radius: 4px;
+  font-size: 3.2vw; line-height: 1;
+  cursor: pointer; padding: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: background 0.12s, transform 0.08s;
+}
+.promotion-cell:hover, .promotion-cell:focus {
+  background: #ffdf7a; outline: none; transform: scale(1.05); z-index: 2;
+}
+@media (max-width: 900px) { .promotion-cell { font-size: 7vw; } }
