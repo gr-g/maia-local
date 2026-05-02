@@ -2,7 +2,7 @@
 
 A minimal replication of the [Maia Chess](https://www.maiachess.com/) play-page architecture, running entirely in the browser.
 
-Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objective to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves and also plays non-deterministically (potentially taking different lines from the same position).
+Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objective to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves (and also plays non-deterministically, potentially taking different lines from the same position).
 
 ## Model source
 
@@ -73,5 +73,5 @@ Alternatively, you can drop in a COOP/COEP service-worker shim such as [`coi-ser
 ```
 
 - **Preprocessing** (`engine.js`): mirror FEN if black-to-move, encode 64×12 one-hot board tokens, build 4352-long legal-moves mask.
-- **Inference** (`maia-worker.js`): forward pass through Maia 3 → `logits_move[4352]`, `logits_value[3]` (L/D/W for side-to-move).
+- **Inference** (`maia-worker.js`): forward pass through Maia-3 → `logits_move[4352]`, `logits_value[3]` (L/D/W for side-to-move).
 - **Postprocessing** (`engine.js`): softmax WDL for white-win probability, masked+softmax move logits, mirror UCIs back if black-to-move.

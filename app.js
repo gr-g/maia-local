@@ -38,7 +38,7 @@ function onMove(orig, dest) {
 }
 
 function populateEloDropdowns() {
-  const elos = [1100,1200,1300,1400,1500,1600,1700,1800,1900,2000];
+  const elos = [600,800,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2200,2400,2600];
   for (const sel of [$('self-elo'), $('oppo-elo')]) {
     sel.innerHTML = '';
     for (const e of elos) {
