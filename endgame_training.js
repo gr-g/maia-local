@@ -259,13 +259,12 @@ async function doOpponentMove() {
     const maiaP  = engine.infer(fen, MAIA_ELO, MAIA_ELO);
     const [tb, maia] = await Promise.all([tbP, maiaP]);
 
-    let classification = { bestMoves: [], bestCategory: null, allMoves: [] };
+    let classification = { bestMoves: [], summary: null, allMoves: [] };
     let tbError = null;
     if (tb && !tb.__err) {
       classification = classifyMoves(tb);
       const oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
-      const oppSummary = (oppOutcome === 'win') ? 'winning' : (oppOutcome === 'draw') ? 'drawing' : (oppOutcome === 'loss') ? 'losing' : ''
-      $('tb-info').textContent = `Tablebase queried: opponent position is ${oppSummary || 'n/a'}.`;
+      $('tb-info').textContent = `Tablebase queried: opponent position is ${classification.summary || 'n/a'}.`;
 
       // Fail check from Q.category (opponent POV). User's POV is inverted:
       //   opp=win  → user is losing     → fail always
@@ -315,7 +314,7 @@ async function pickOpponentMove(classification, maia) {
     // Show moves from restricted policy for transparency
     const top = Object.entries(restricted).sort((a,b) => b[1]-a[1])
       .map(([m,p]) => `${m} ${(p*100).toFixed(1)}%`).join(' · ');
-    $('maia-info').textContent = `Maia chose among ${subset.length} ${oppSummary || 'legal'} move(s): ${top}`;
+    $('maia-info').textContent = `Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
     return picked;
   }
   // Fallback: uniform-random over legal

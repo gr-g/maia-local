@@ -43,9 +43,9 @@ export function moveToUci(mv) { return mv.uci; }
 
 /**
  * Given a tablebase response, return:
- *   { bestMoves: [uci,...], bestCategory: 'win'|'draw'|'loss'|null, allMoves: [...] }
+ *   { bestMoves: [uci,...], summary: 'winning'|'drawing'|'losing'|null, allMoves: [...] }
  *
- * `bestCategory` is from the perspective of the side currently to move.
+ * `summary` is from the perspective of the side currently to move.
  * The moves in `bestMoves` achieve that best category (from STM's POV), derived from
  * `moves[].category` which is reported from the POV of the responder (next STM).
  *
@@ -55,17 +55,17 @@ export function moveToUci(mv) { return mv.uci; }
  *   - else any move (opponent is losing anyway)
  */
 export function classifyMoves(tb) {
-  if (!tb || !Array.isArray(tb.moves)) return { bestMoves: [], bestCategory: null, allMoves: [] };
+  if (!tb || !Array.isArray(tb.moves)) return { bestMoves: [], summary: null, allMoves: [] };
   const winMoves  = tb.moves.filter(m => LOSS_CATEGORIES.has(m.category)); // opp wins → user-after loses
   const drawMoves = tb.moves.filter(m => DRAW_CATEGORIES.has(m.category));
   const losMoves  = tb.moves.filter(m => WIN_CATEGORIES.has(m.category));
-  let bestMoves, bestCategory;
-  if (winMoves.length)       { bestMoves = winMoves;  bestCategory = 'win'; }
-  else if (drawMoves.length) { bestMoves = drawMoves; bestCategory = 'draw'; }
-  else                       { bestMoves = tb.moves;  bestCategory = losMoves.length ? 'loss' : null; }
+  let bestMoves, summary;
+  if (winMoves.length)       { bestMoves = winMoves;  summary = 'winning'; }
+  else if (drawMoves.length) { bestMoves = drawMoves; summary = 'drawing'; }
+  else                       { bestMoves = tb.moves;  summary = losMoves.length ? 'losing' : null; }
   return {
     bestMoves: bestMoves.map(m => m.uci),
-    bestCategory,
+    summary,
     allMoves: tb.moves,
   };
 }
