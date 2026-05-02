@@ -206,14 +206,11 @@ export class MaiaEngine extends EventTarget {
 
 // ── Utility: sample from policy ──────────────────────────────────────────────
 
-/** Sample a UCI move from a {move: prob} dict. Optionally restrict to a subset of UCIs. */
-export function samplePolicy(policy, subset = null) {
-  let entries = Object.entries(policy);
-  if (subset) {
-    const allow = new Set(subset);
-    entries = entries.filter(([m]) => allow.has(m));
-    if (entries.length === 0) return null;
-  }
+/** Sample a UCI move from a {move: prob} dict. */
+export function samplePolicy(policy) {
+  const entries = Object.entries(policy);
+  if (entries.length === 0) return null;
+
   const sum = entries.reduce((a, [,p]) => a + p, 0);
   if (sum === 0) return entries[Math.floor(Math.random() * entries.length)][0];
   let r = Math.random() * sum;
