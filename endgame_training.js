@@ -28,7 +28,6 @@ const target      = (params.get('target') || 'checkmate').toLowerCase() === 'dra
 
 $('tag-player').textContent = `Player: ${playerColor}`;
 $('tag-target').textContent = `Target: ${target}`;
-$('parsed-params').textContent = `player=${playerColor}, target=${target}, startFen=${startFen}`;
 
 // ── State ────────────────────────────────────────────────────────────────────
 let chess = new Chess();

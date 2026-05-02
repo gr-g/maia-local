@@ -24,9 +24,8 @@
 <body>
   <header>
     <h1>Endgame Training</h1>
-    <span class="sub">Play vs Maia · tablebase-perfect opponent</span>
+    <span class="sub">Play vs Maia · tablebase-perfect opponent selecting human moves</span>
     <span style="flex:1"></span>
-    <a class="small-link" href="./">← Back to play</a>
   </header>
 
   <main>
@@ -54,12 +53,13 @@
     <section class="side-pane">
       <div class="panel">
         <h3>Maia 3 model</h3>
+        <div class="row">
+          <button id="download">Download model</button>
+          <button id="clear-cache" title="Delete cached weights from IndexedDB">Clear cache</button>
+        </div>
         <div class="status">
           <span id="status" class="pill">idle</span>
           <progress id="progress" max="100" value="0"></progress>
-        </div>
-        <div class="row">
-          <button id="download">Download model</button>
         </div>
         <div id="storage-info" class="muted"></div>
       </div>
@@ -73,14 +73,6 @@
       <div class="panel">
         <h3>Move log</h3>
         <div id="move-log"></div>
-      </div>
-
-      <div class="panel">
-        <h3>URL parameters</h3>
-        <div class="muted" style="font-size:0.8rem;">
-          Expected: <code>?player=white|black&amp;startFen=FEN&amp;target=checkmate|draw</code>.
-        </div>
-        <div class="muted" id="parsed-params"></div>
       </div>
     </section>
   </main>
