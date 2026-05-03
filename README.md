@@ -12,7 +12,7 @@ Going to `endgame_training.html` without any parameters will present a random en
 
 [https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8 w - - 0 1&target=checkmate](https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8%20w%20-%20-%200%201&target=checkmate)
 
-Training endgames against Maia has multiple advantages. First, it allows playing against a non-deterministic opponent (meaning that the opponent does not always play the same move in the same position) testing your ability to navigate different scenarios arising from the same starting position. Moreover, in both drawing and losing positions, the opponent will play moves that still resemble what a human would play to fight back. This is in contrast with what happens when playing endgames against strong engines, where the engine sometimes plays unintuitive or inexplicable moves to keep the draw (when the position is drawing), or plays just to delay mate (when losing) even if this removes any challenge - the typical exemple is when the engine runs away with the king knowing that it cannot stop a pawn from eventually promote, even if this makes the exercise pointless.
+Training endgames against Maia has multiple advantages. First, it allows playing against a non-deterministic opponent (meaning that the opponent does not always play the same move in the same position) testing your ability to navigate different scenarios arising from the same starting position. Moreover, in both drawing and losing positions, the opponent will play moves that still resemble what a human would play to fight back. This is in contrast with what happens when playing endgames against strong engines, where the engine sometimes plays unintuitive or inexplicable moves to keep the draw (when the position is drawing), or plays just to delay mate (when losing) even if this removes any challenge - the typical example is when the engine runs away with the king knowing that it cannot stop a pawn from eventually promoting, even if this makes the exercise pointless.
 
 As far as I am aware, this is the first endgame training application that avoids these common pitfalls.
 
@@ -51,6 +51,7 @@ To clear the cached weights, click **Clear cache**.
 | `vendor/chessground.*.css` | Vendored chessground CSS (pieces embedded as data URIs) |
 | `styles.css` | Page layout |
 | `ort/` | onnxruntime-web 1.23.0 WASM runtime (single unified `.wasm` + `.mjs`) |
+| `endgames.csv` | Collection of random endgame starting positions |
 | `data/all_moves_maia3*.json` | Move-index for the Maia model (4352 moves) |
 
 ## Run locally
@@ -65,4 +66,4 @@ python3 -m http.server 8765
 
 The Maia engine runs reasonably fast on a standard desktop (typically **~100–200 ms** for inference). It might run slower on a mobile device, with up to a few seconds for inference.
 
-It could be optimized somewhat by enabling multi-threaded inference, howevet this is not well supported by Github Pages (it requires something like [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker)) and it showed some instability when tested, so for the moment we keep it simple and single-threaded.
+It could be optimized somewhat by enabling multi-threaded inference, however this is not well supported by Github Pages (it requires something like [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker)) and it showed some instability when tested, so for the moment we keep it simple and single-threaded.
