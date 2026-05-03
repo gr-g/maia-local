@@ -69,7 +69,7 @@ function setStatus(status) {
   el.textContent = status;
   el.className = 'pill ' + status;
   $('run').disabled = status !== 'ready';
-  $('download').disabled = status === 'ready' || status === 'downloading';
+  $('download').disabled = status !== 'no-cache';
 }
 
 function renderResult(res) {

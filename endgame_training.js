@@ -192,7 +192,7 @@ const engine = new MaiaEngine();
 engine.addEventListener('status', e => {
   $('status').textContent = e.detail;
   $('status').className = 'pill ' + e.detail;
-  $('download').disabled = e.detail === 'ready' || e.detail === 'downloading';
+  $('download').disabled = e.detail !== 'no-cache';
   // When model is ready and it's the opponent's move at start, kick off opponent turn
   if (e.detail === 'ready' && !userTurn() && !gameOver) scheduleOpponentMove();
 });
