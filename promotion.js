@@ -13,10 +13,10 @@
 // up, and for reverting the visual move on cancel (syncBoard in our case).
 
 const PIECES = [
-  { key: 'q', w: '♕', b: '♛', label: 'Queen'  },
-  { key: 'r', w: '♖', b: '♜', label: 'Rook'   },
-  { key: 'b', w: '♗', b: '♝', label: 'Bishop' },
-  { key: 'n', w: '♘', b: '♞', label: 'Knight' },
+  { key: 'q', name: 'queen', label: 'Queen'  },
+  { key: 'r', name: 'rook', label: 'Rook'   },
+  { key: 'b', name: 'bishop', label: 'Bishop' },
+  { key: 'n', name: 'knight', label: 'Knight' },
 ];
 
 export function askPromotion(boardEl, destSquare, color, orientation) {
@@ -85,12 +85,23 @@ export function askPromotion(boardEl, destSquare, color, orientation) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 'min(32px, 4vw)',
         padding: '0'
       });
       cell.dataset.piece = p.key;
       cell.setAttribute('aria-label', `Promote to ${p.label}`);
-      cell.textContent = color === 'w' ? p.w : p.b;
+
+      const pieceEl = document.createElement('piece');
+      const colorClass = color === 'w' ? 'white' : 'black';
+      pieceEl.className = `${p.name} ${colorClass}`;
+      Object.assign(pieceEl.style, {
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        margin: '0',
+        pointerEvents: 'none'
+      });
+      cell.appendChild(pieceEl);
+
       // Order: if at bottom, we want Queen (index 0) at the top of the stack
       // if at top, we want Queen (index 0) at the bottom? No, usually 
       // pieces should extend from the promotion square into the board.
