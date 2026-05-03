@@ -68,10 +68,13 @@ function setMovableOnlyForUser() {
 }
 
 function syncBoard() {
+  const hist = chess.history({ verbose: true });
+  const lastMove = hist.length > 0 ? [hist[hist.length - 1].from, hist[hist.length - 1].to] : undefined;
   ground.set({
     fen: chess.fen(),
     turnColor: turnColor(chess),
     check: chess.inCheck(),
+    lastMove: lastMove
   });
   setMovableOnlyForUser();
   updateTurnIndicator();
