@@ -8,6 +8,8 @@ Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objec
 
 By visiting `endgame_training.html` (see it live [here](https://gr-g.github.io/maia-local/endgame_training.html)), you can train yourself by playing endgame positions against a perfect - but human-like - opponent.
 
+![Endgame training](endgame_screenshot.png)
+
 Going to `endgame_training.html` without any parameters will present a random endgame scenario, but in general you can play any endgame position of your choice by passing arguments for the starting position, the color you are playing, and the objective you want to achieve (checkmate or draw), like this:
 
 [https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8 w - - 0 1&target=checkmate](https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8%20w%20-%20-%200%201&target=checkmate)
