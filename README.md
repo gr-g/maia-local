@@ -2,7 +2,27 @@
 
 A minimal replication of the [Maia Chess](https://www.maiachess.com/) play-page architecture, running entirely in the browser.
 
-Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objective to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves (and also plays non-deterministically, potentially taking different lines from the same position).
+Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objective to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves.
+
+## Endgame training
+
+By visiting `endgame_training.html` (see it live [here](https://gr-g.github.io/maia-local/endgame_training.html)), you can train yourself to play endgame positions against a perfect - but human-like - opponent.
+
+Going to `endgame_training.html` without any parameters will present a random endgame scenario, but in general you can play any endgame position of your choice by passing arguments for the starting position, the color you are playing, and the objective you want to achieve (checkmate or draw), like this:
+
+[https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8 w - - 0 1&target=checkmate](https://gr-g.github.io/maia-local/endgame_training.html?player=white&startFen=8/k1P5/8/K7/8/8/8/8 w - - 0 1&target=checkmate)
+
+Training endgames against Maia has multiple advantages. First, it allows playing against a non-deterministic opponent, meaning that the opponent does not always play the same move in the same position, testing different scenarios from the same starting position. Moreover, in both drawing and losing positions, the opponent will play moves that still resemble what a human would play to fight back. This in contrast with what happens when playing endgames against strong engines, where the engine sometimes plays unintuitive or inexcplicable moves to keep the draw (when the position is drawing), or plays just to delay mate (when losing) even if this removes any challenge - the typical exemple is when the engine runs away with the king knowing that it cannot stop a pawn from eventually promote, even if this makes the exercise pointless.
+
+As far as I am aware, this is the first endgame training application that avoids these common pitfalls.
+
+Note that in any case Maia plays perfectly: it uses knowledge of the [endgame tablebase](https://lichess.org/api#tag/tablebase) so that:
+- if a player makes a mistake (a winning position cannot be won anymore, or a drawing position becomes losing), Maia will immediately punish the mistake by choosing a move among the ones that win/draw.
+- in a drawing position, Maia will choose one of the moves that keep the draw.
+- in a losing position, Maia will avoid moves that reduce too much the distance to mate (or more precisely, the distance-to-zero metric).
+But within these constraints, Maia will choose a move according to the probabilities estimated by the model for a (good) human player.
+
+This application was inspired by similar projects: supertorpe's [Chess Endgame Training](https://chess-endgame-trainer.mooo.com/); and the [Endgame Trainer](https://app.endgametrainer.com/) web app.
 
 ## Model source
 
@@ -12,7 +32,7 @@ On first use (click **Download model**) the page fetches:
 https://raw.githubusercontent.com/CSSLab/maia-platform-frontend/main/public/maia3/maia3_simplified.onnx
 ```
 
-(~44 MB, served with `Access-Control-Allow-Origin: *` from GitHub). The buffer is stored in IndexedDB under the `MaiaModels` database, so subsequent loads are instant and offline-capable.
+(~44 MB, served from GitHub). The buffer is stored in IndexedDB under the `MaiaModels` database, so subsequent loads are instant and offline-capable.
 
 To clear the cached weights, click **Clear cache**.
 
@@ -26,10 +46,11 @@ To clear the cached weights, click **Clear cache**.
 | `engine.js` | Shared MaiaEngine wrapper, preprocessing/postprocessing |
 | `maia-worker.js` | Web Worker: ONNX session, IndexedDB cache, inference |
 | `tablebase.js` | Lichess tablebase helpers (endgame trainer) |
+| `promotion.js` | Manages the overlay to select the promotion piece |
 | `vendor/chessground.*.css` | Vendored chessground CSS (pieces embedded as data URIs) |
 | `styles.css` | Page layout |
 | `ort/` | onnxruntime-web 1.23.0 WASM runtime (single unified `.wasm` + `.mjs`) |
-| `data/all_moves_maia3*.json` | Move-index ↔ UCI vocabulary (4352 moves) |
+| `data/all_moves_maia3*.json` | Move-index for the Maia model (4352 moves) |
 
 ## Run locally
 
@@ -39,29 +60,8 @@ python3 -m http.server 8765
 # then open http://localhost:8765/
 ```
 
-On first load:
-1. Click **Download model** (~44 MB from raw.githubusercontent.com, cached in IndexedDB)
-2. Status pill turns **ready**
-3. Make a move or set a FEN — if auto-run is checked, inference runs automatically
-
 ## Performance notes
-The project uses [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker) to enable Cross-Origin Isolation (COOP/COEP) via a client-side service worker. This allows `SharedArrayBuffer` support even on restricted hosts like GitHub Pages, enabling **multi-threaded WebAssembly** performance.
 
-In practice, with SIMD and multi-threading enabled, a single forward pass of Maia 3 typically takes **~200–400 ms** on modern hardware.
+The Maia engine runs reasonably fast on a standard desktop (typically **~100–200 ms** for inference). It might run slower on a mobile device, with up to a few seconds for inference.
 
-## Architecture
-
-```
-┌──────────────┐       ┌─────────────────┐       ┌──────────────────┐
-│  Main thread │       │  Web Worker     │       │  onnxruntime-web │
-│              │       │                 │       │   (WASM SIMD)    │
-│  chessground │──────▶│  maia-worker.js │──────▶│                  │
-│  chess.js    │ move  │                 │ feeds │  maia3.onnx      │
-│  preprocess  │ tokens│  IndexedDB      │       │  (from GitHub)   │
-│  postprocess │◀──────│  cache          │◀──────│                  │
-└──────────────┘ logits└─────────────────┘       └──────────────────┘
-```
-
-- **Preprocessing** (`engine.js`): mirror FEN if black-to-move, encode 64×12 one-hot board tokens, build 4352-long legal-moves mask.
-- **Inference** (`maia-worker.js`): forward pass through Maia-3 → `logits_move[4352]`, `logits_value[3]` (L/D/W for side-to-move).
-- **Postprocessing** (`engine.js`): softmax WDL for white-win probability, masked+softmax move logits, mirror UCIs back if black-to-move.
+It could be optimized somewhat by enabling multi-threaded inference, howevet this is not well supported by Github Pages (it requires something like [`coi-serviceworker`](https://github.com/gzuidhof/coi-serviceworker)) and it showed some instability when tested, so for the moment we keep it simple and single-threaded.
