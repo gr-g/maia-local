@@ -24,7 +24,6 @@ export async function queryTablebase(fen, { signal, retries = 1 } = {}) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, { signal });
-      if (res.status === 404) return null; // position not in coverage (rare)
       if (!res.ok) { lastErr = new Error(`HTTP ${res.status}`); continue; }
       return await res.json();
     } catch (err) {

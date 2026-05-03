@@ -340,7 +340,11 @@ async function doOpponentMove() {
     if (tb && !tb.__err) {
       classification = classifyMoves(tb);
       const oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
-      $('tb-info').textContent = `Tablebase queried: opponent position is ${classification.summary || 'n/a'}.`;
+      if (classification.summary) {
+        $('tb-info').textContent = `Tablebase queried: Maia has a ${classification.summary} position.`;
+      } else {
+        $('tb-info').textContent = `Tablebase queried: no information available.`;
+      }
 
       // Fail check from Q.category (opponent POV). User's POV is inverted:
       //   opp=win  → user is losing     → fail always
@@ -352,8 +356,8 @@ async function doOpponentMove() {
       if (userFail) showResult('fail', userFail);
       else hideResult();
     } else {
-      tbError = tb?.__err?.message || 'outside 7-piece coverage';
-      $('tb-info').textContent = `Tablebase unavailable (${tbError}); opponent falls back to plain Maia sampling, fail detection disabled.`;
+      tbError = tb?.__err?.message || 'query failed';
+      $('tb-info').textContent = `Tablebase unavailable (${tbError}).`;
     }
 
     // Pick opponent's move
