@@ -5,14 +5,14 @@
 const BASE = 'https://tablebase.lichess.org/standard';
 
 // Category conventions we use:
-//   win / cursed-win  → winning for side-to-move (we treat cursed-win as winning)
-//   draw              → draw
-//   loss / blessed-loss / maybe-loss  → losing for side-to-move
-//   unknown / maybe-win → unknown
+//   win / cursed-win / maybe-win / syzygy-win → winning for side-to-move (we ignore the 50-move rule)
+//   draw → draw
+//   loss / blessed-loss / maybe-loss / syzygy-loss → losing for side-to-move
+//   unknown → unknown
 
-const WIN_CATEGORIES  = new Set(['win', 'cursed-win']);
+const WIN_CATEGORIES  = new Set(['win', 'cursed-win', 'maybe-win', 'syzygy-win']);
 const DRAW_CATEGORIES = new Set(['draw']);
-const LOSS_CATEGORIES = new Set(['loss', 'blessed-loss', 'maybe-loss']);
+const LOSS_CATEGORIES = new Set(['loss', 'blessed-loss', 'maybe-loss', 'syzygy-loss']);
 
 /**
  * Query the tablebase for a FEN.
