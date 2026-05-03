@@ -107,7 +107,7 @@ async function runInference() {
   try {
     const res = await engine.infer(chess.fen(), +$('self-elo').value, +$('oppo-elo').value);
     const dt = performance.now() - t0;
-    $('timing').textContent = `${dt.toFixed(1)} ms`;
+    $('timing').textContent = `${dt.toFixed(0)} ms`;
     renderResult(res);
   } catch (err) {
     $('timing').textContent = 'error';

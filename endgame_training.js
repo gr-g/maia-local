@@ -331,9 +331,19 @@ async function doOpponentMove() {
     const fen = chess.fen();
 
     // Parallel: tablebase query and Maia inference
-    const tbP    = queryTablebase(fen).catch(err => ({ __err: err }));
-    const maiaP  = engine.infer(fen, MAIA_ELO, MAIA_ELO);
-    const [tb, maia] = await Promise.all([tbP, maiaP]);
+    const tbStart = performance.now();
+    const tbP    = queryTablebase(fen)
+      .then(res => ({ res, dt: performance.now() - tbStart }))
+      .catch(err => ({ __err: err, dt: performance.now() - tbStart }));
+    const maiaStart = performance.now();
+    const maiaP  = engine.infer(fen, MAIA_ELO, MAIA_ELO)
+      .then(res => ({ res, dt: performance.now() - maiaStart }));
+
+    const [tbWrap, maiaWrap] = await Promise.all([tbP, maiaP]);
+    const tb = tbWrap.res || { __err: tbWrap.__err };
+    const tbDt = tbWrap.dt.toFixed(0);
+    const maia = maiaWrap.res;
+    const maiaDt = maiaWrap.dt.toFixed(0);
 
     let classification = { bestMoves: [], summary: null, allMoves: [] };
     let tbError = null;
@@ -341,9 +351,9 @@ async function doOpponentMove() {
       classification = classifyMoves(tb);
       const oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
       if (classification.summary) {
-        $('tb-info').textContent = `Tablebase queried: Maia has a ${classification.summary} position.`;
+        $('tb-info').textContent = `Tablebase queried in ${tbDt} ms. Maia has a ${classification.summary} position.`;
       } else {
-        $('tb-info').textContent = `Tablebase queried: no information available.`;
+        $('tb-info').textContent = `Tablebase queried in ${tbDt} ms. No information available.`;
       }
 
       // Fail check from Q.category (opponent POV). User's POV is inverted:
@@ -361,7 +371,7 @@ async function doOpponentMove() {
     }
 
     // Pick opponent's move
-    const oppMoveUci = await pickOpponentMove(classification, maia);
+    const oppMoveUci = await pickOpponentMove(classification, maia, maiaDt);
     if (!oppMoveUci) { endGame('warn', 'Opponent has no legal moves — unusual position.'); return; }
     applyOpponentMove(oppMoveUci);
 
@@ -377,14 +387,14 @@ async function doOpponentMove() {
   }
 }
 
-async function pickOpponentMove(classification, maia) {
+async function pickOpponentMove(classification, maia, maiaDt) {
   const legal = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
   if (!legal.length) return null;
 
   let subset = legal;
   if (classification.bestMoves && classification.bestMoves.length) {
     const moves = classification.bestMoves; // Array of {uci, dtz}
-    
+
     if (classification.summary === 'losing') {
       // Maia is losing: filter to keep moves that delay the end (maximize DTZ)
       const maxDtz = Math.max(...moves.map(m => m.dtz));
@@ -408,7 +418,7 @@ async function pickOpponentMove(classification, maia) {
         if (move) chess.undo();
         return `${san} ${(p*100).toFixed(1)}%`;
       }).join(' · ');
-    $('maia-info').textContent = `Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
+    $('maia-info').textContent = `Model inference run in ${maiaDt} ms. Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
     return picked;
   }
   // Fallback: uniform-random over legal
