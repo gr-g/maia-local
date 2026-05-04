@@ -89,22 +89,12 @@ function updateTurnIndicator() {
 
 function updateLichessLink() {
   let pgn = `[FEN "${startFen}"]\n\n`;
-  const fenParts = startFen.split(' ');
-  const isBlackStart = fenParts[1] === 'b';
-  const startFullMove = parseInt(fenParts[5] || '1');
 
-  moveHistorySan.forEach((m, i) => {
-    const moveIndex = Math.floor(i / 2) + startFullMove;
-    if (i === 0 && isBlackStart) {
-      pgn += `${moveIndex}... ${m.san} `;
-    } else if (i % 2 === (isBlackStart ? 1 : 0)) {
-      pgn += `${moveIndex}. ${m.san} `;
-    } else {
-      pgn += `${m.san} `;
-    }
+  moveHistorySan.forEach((m, _) => {
+    pgn += ` ${m.san}`;
   });
 
-  const encodedPgn = encodeURIComponent(pgn.trim());
+  const encodedPgn = encodeURIComponent(pgn);
   $('lichess-analysis').href = `https://lichess.org/analysis/pgn/${encodedPgn}`;
 }
 
