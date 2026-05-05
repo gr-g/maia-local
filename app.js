@@ -73,10 +73,24 @@ function setStatus(status) {
 }
 
 function renderResult(res) {
-  const wp = res.winProbWhite;
-  $('eval-white').style.width = (wp * 100).toFixed(1) + '%';
+  const turn = chess.turn();
+  let whiteWin, draw, blackWin;
+  if (turn === 'w') {
+    whiteWin = res.wdl.win;
+    draw = res.wdl.draw;
+    blackWin = res.wdl.loss;
+  } else {
+    whiteWin = res.wdl.loss;
+    draw = res.wdl.draw;
+    blackWin = res.wdl.win;
+  }
+
+  $('eval-white').style.width = (whiteWin * 100).toFixed(1) + '%';
+  $('eval-draw').style.width = (draw * 100).toFixed(1) + '%';
+  $('eval-black').style.width = (blackWin * 100).toFixed(1) + '%';
+
   $('eval-text').textContent =
-    `White win prob: ${(wp*100).toFixed(2)}% · WDL (STM): L ${(res.wdl.loss*100).toFixed(1)}%  D ${(res.wdl.draw*100).toFixed(1)}%  W ${(res.wdl.win*100).toFixed(1)}%`;
+    `White win: ${(whiteWin*100).toFixed(1)}% · Draw: ${(draw*100).toFixed(1)}% · Black win: ${(blackWin*100).toFixed(1)}%`;
 
   const tbody = $('moves').querySelector('tbody');
   tbody.innerHTML = '';
