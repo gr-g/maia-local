@@ -159,7 +159,8 @@ function showResult(kind, text) {
   const el = $('result');
   el.style.display = 'block';
   el.className = 'result-overlay ' + (kind === 'success' ? 'result-success' : kind === 'fail' ? 'result-fail' : 'result-warn');
-  el.textContent = text;
+  const prefix = kind === 'success' ? '✓ Success!' : kind === 'fail' ? '✗ Failed.' : '⚠';
+  el.textContent = `${prefix} ${text}`;
 }
 function hideResult() { $('result').style.display = 'none'; }
 
@@ -218,7 +219,7 @@ refreshStorageInfo();
 function resetGame() {
   chess = new Chess();
   try { chess.load(startFen); } catch (err) {
-    showResult('fail', `Invalid startFen: ${err.message}`);
+    showResult('warn', `${err.message}`);
     chess = new Chess();
   }
 
@@ -355,7 +356,7 @@ async function doOpponentMove() {
       //   opp=loss → user is winning    → no fail
       let userFail = null;
       if (oppOutcome === 'win')  userFail = 'You are in a losing position.';
-      else if (oppOutcome === 'draw' && target === 'checkmate') userFail = 'Opponent can force a draw — no checkmate possible from here.';
+      else if (oppOutcome === 'draw' && target === 'checkmate') userFail = 'Opponent can force a draw.';
       if (userFail) showResult('fail', userFail);
       else hideResult();
     } else {
@@ -429,8 +430,7 @@ function endGame(kind, reason) {
   gameOver = true;
   setMovableOnlyForUser();
   updateTurnIndicator();
-  const prefix = kind === 'success' ? '✓ Success!' : kind === 'fail' ? '✗ Failed.' : '⚠';
-  showResult(kind, `${prefix} ${reason}`);
+  showResult(kind, reason);
 }
 
 // ── Initialization ───────────────────────────────────────────────────────────
@@ -443,7 +443,7 @@ if (!startFen) {
 
 try { chess.load(startFen || STARTPOS); }
 catch (err) {
-  showResult('fail', `Invalid startFen: ${err.message}`);
+  showResult('warn', `${err.message}`);
   chess = new Chess();
 }
 
