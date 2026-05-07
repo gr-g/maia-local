@@ -1,7 +1,7 @@
 // Endgame Training — play vs Maia with a tablebase-perfect opponent.
 //
 // URL params:
-//   ?player=white|black&startFen=FEN&target=checkmate|draw
+//   ?player=white|black&startFen=FEN&objective=checkmate|draw
 //
 // Game loop:
 //   1. user moves
@@ -22,7 +22,7 @@ const MAIA_ELO = 2000;
 const STARTPOS = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 // ── State ────────────────────────────────────────────────────────────────────
-let playerColor, startFen, target;
+let playerColor, startFen, objective;
 let chess = new Chess();
 let ground = null;
 let gameOver = false;
@@ -39,12 +39,12 @@ function parseParams() {
   const params = new URLSearchParams(location.search);
   playerColor = (params.get('player') || 'white').toLowerCase() === 'black' ? 'black' : 'white';
   startFen    = (params.get('startFen') || '').trim();
-  target      = (params.get('target') || 'draw').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
+  objective   = (params.get('objective') || 'draw').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
 }
 
 function updateTags() {
   $('tag-player').textContent = `Player: ${playerColor}`;
-  $('tag-target').textContent = `Target: ${target}`;
+  $('tag-objective').textContent = `Objective: ${objective}`;
 }
 
 function legalDests(c) {
@@ -98,7 +98,7 @@ function updateLichessLink() {
   $('lichess-analysis').href = `https://lichess.org/analysis/pgn/${encodedPgn}`;
 }
 
-// ── Material-based trivial-endgame detection (for target=checkmate user-success) ─
+// ── Material-based trivial-endgame detection (for objective=checkmate user-success) ─
 function pieceCounts(fen) {
   const pos = fen.split(' ')[0];
   const c = { P:0,N:0,B:0,R:0,Q:0,K:0, p:0,n:0,b:0,r:0,q:0,k:0 };
@@ -123,7 +123,7 @@ function isTrivialEndgameFor(userIsWhiteSide, fen) {
 function checkUserWin() {
   const fen = chess.fen();
   const halfMove = parseInt(fen.split(' ')[4] || '0');
-  if (target === 'checkmate') {
+  if (objective === 'checkmate') {
     if (chess.isCheckmate()) {
       // It's whoever-just-moved who delivered mate. If the person now to move
       // is NOT the user, then the user just delivered mate.
@@ -136,12 +136,12 @@ function checkUserWin() {
     if (userTurn() && isTrivialEndgameFor(userIsWhite(), fen)) {
       return { outcome: 'success', reason: 'Converted to a winning endgame.' };
     }
-    // Local draw checks are failures for the checkmate target
+    // Local draw checks are failures for the checkmate objective
     if (chess.isStalemate())           return { outcome: 'fail', reason: 'Stalemate.' };
     if (chess.isInsufficientMaterial())return { outcome: 'fail', reason: 'Insufficient material.' };
     if (chess.isThreefoldRepetition()) return { outcome: 'fail', reason: 'Threefold repetition.' };
     if (halfMove >= 100)               return { outcome: 'fail', reason: '50 moves.' };
-  } else { // target === 'draw'
+  } else { // objective === 'draw'
     if (chess.isCheckmate()) {
       if (!userTurn()) return { outcome: 'fail', reason: 'You delivered checkmate — not a draw.' };
       return { outcome: 'fail', reason: 'You were checkmated.' };
@@ -250,17 +250,17 @@ async function pickRandomEndgame(updateUrl = true) {
     const lines = text.trim().split('\n').slice(1); // skip header
     if (lines.length === 0) return;
     const randomLine = lines[Math.floor(Math.random() * lines.length)];
-    const [fen, tgt] = randomLine.split(',');
+    const [fen, obj] = randomLine.split(',');
 
     const fenParts = fen.split(' ');
     playerColor = fenParts[1] === 'w' ? 'white' : 'black';
     startFen = fen;
-    target = (tgt || 'draw').trim().toLowerCase();
+    objective = (obj || 'draw').trim().toLowerCase();
 
     if (updateUrl) {
       const url = new URL(window.location);
       url.searchParams.set('startFen', startFen);
-      url.searchParams.set('target', target);
+      url.searchParams.set('objective', objective);
       url.searchParams.set('player', playerColor);
       window.history.pushState({}, '', url);
     }
@@ -352,11 +352,11 @@ async function doOpponentMove() {
 
       // Fail check from Q.category (opponent POV). User's POV is inverted:
       //   opp=win  → user is losing     → fail always
-      //   opp=draw → user is drawing    → fail only if target=checkmate
+      //   opp=draw → user is drawing    → fail only if objective=checkmate
       //   opp=loss → user is winning    → no fail
       let userFail = null;
       if (oppOutcome === 'win')  userFail = 'You are in a losing position.';
-      else if (oppOutcome === 'draw' && target === 'checkmate') userFail = 'Opponent can force a draw.';
+      else if (oppOutcome === 'draw' && objective === 'checkmate') userFail = 'Opponent can force a draw.';
       if (userFail) showResult('fail', userFail);
       else hideResult();
     } else {
@@ -369,7 +369,7 @@ async function doOpponentMove() {
     if (!oppMoveUci) { endGame('warn', 'Opponent has no legal moves — unusual position.'); return; }
     applyOpponentMove(oppMoveUci);
 
-    // After opponent moves, check local user conditions that can fire on opp turn (e.g. opp stalemates user-target-draw)
+    // After opponent moves, check local user conditions that can fire on opp turn (e.g. opp stalemates user-objective-draw)
     const post = checkUserWin();
     if (post) { endGame(post.outcome, post.reason); return; }
   } catch (err) {
