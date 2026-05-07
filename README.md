@@ -2,7 +2,7 @@
 
 A minimal replication of the [Maia Chess](https://www.maiachess.com/) play-page architecture, running entirely in the browser.
 
-Written with Claude and [Agent Zero](https://www.agent-zero.ai/), with the objective to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves.
+The objective of this repository is to experiment using the Maia human-like chess engine for various applications, such as training endgame positions against an opponent that plays realistic moves.
 
 ## Endgame training
 
