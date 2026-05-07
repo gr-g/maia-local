@@ -19,6 +19,7 @@ const ORT = ort
 // Resolve wasm assets relative to THIS worker's URL, not relative to
 // ort.wasm.min.js's own URL (which would double the /ort/ segment).
 ORT.env.wasm.wasmPaths = new URL('./ort/', self.location.href).href
+ORT.env.wasm.numThreads = 1
 
 // ── IndexedDB storage (mirrors MaiaModelStorage) ─────────────────────────────
 
