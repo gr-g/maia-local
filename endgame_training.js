@@ -390,9 +390,14 @@ async function pickOpponentMove(classification, maia, maiaDt) {
     const moves = classification.bestMoves; // Array of {uci, dtz}
 
     if (classification.summary === 'losing') {
-      // Maia is losing: filter to keep moves that delay the end (maximize DTZ)
+      // Maia is losing, filter to exclude moves that make it too easy for the player:
+      // - moves with dtz <= maxDtz - 10
+      // - moves with dtz <= 1 if maxDtz > 1
       const maxDtz = Math.max(...moves.map(m => m.dtz));
-      const filtered = moves.filter(m => m.dtz > maxDtz - 10);
+      let filtered = moves.filter(m => m.dtz > maxDtz - 10);
+      if (maxDtz > 1) {
+        filtered = filtered.filter(m => m.dtz > 1)
+      }
       subset = filtered.map(m => m.uci);
     } else {
       // Maia is winning or drawing: take all best moves
