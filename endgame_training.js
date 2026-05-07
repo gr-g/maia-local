@@ -39,7 +39,7 @@ function parseParams() {
   const params = new URLSearchParams(location.search);
   playerColor = (params.get('player') || 'white').toLowerCase() === 'black' ? 'black' : 'white';
   startFen    = (params.get('startFen') || '').trim();
-  objective   = (params.get('objective') || 'draw').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
+  objective   = (params.get('objective') || '').toLowerCase() === 'draw' ? 'draw' : 'checkmate';
 }
 
 function updateTags() {
@@ -255,7 +255,7 @@ async function pickRandomEndgame(updateUrl = true) {
     const fenParts = fen.split(' ');
     playerColor = fenParts[1] === 'w' ? 'white' : 'black';
     startFen = fen;
-    objective = (obj || 'draw').trim().toLowerCase();
+    objective = obj;
 
     if (updateUrl) {
       const url = new URL(window.location);
