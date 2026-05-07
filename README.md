@@ -6,7 +6,7 @@ The objective of this repository is to experiment using the Maia human-like ches
 
 ## Endgame training
 
-By visiting `endgame_training.html` (see it live [here](https://gr-g.github.io/maia-local/endgame_training.html)), you can train yourself by playing endgame positions against a perfect - but human-like - opponent.
+By visiting `endgame_training.html` (see it live [here](https://gr-g.github.io/maia-local/endgame_training.html)), you can exercise yourself by playing endgame positions against a perfect - but human-like - opponent.
 
 ![Endgame training](endgame_screenshot.png)
 
