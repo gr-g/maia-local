@@ -35,12 +35,6 @@ export async function queryTablebase(fen, { signal, retries = 1 } = {}) {
 }
 
 /**
- * Convert tablebase move object → UCI like "e2e4" / "e7e8q".
- * Lichess returns `uci` directly on each move.
- */
-export function moveToUci(mv) { return mv.uci; }
-
-/**
  * Given a tablebase response, return:
  *   { bestMoves: [uci,...], summary: 'winning'|'drawing'|'losing'|null, allMoves: [...] }
  *
