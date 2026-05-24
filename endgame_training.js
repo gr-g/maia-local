@@ -12,7 +12,7 @@
 //   6. loop
 
 import { Chessground } from 'https://esm.sh/chessground@9';
-import { Chess }       from 'https://esm.sh/chess.js@1.0.0-beta.8';
+import { Chess }       from 'https://esm.sh/chess.js@1.4';
 import { MaiaEngine, loadVocab, restrictPolicy, samplePolicy } from './engine.js';
 import { queryTablebase, classifyMoves, rootOutcome } from './tablebase.js';
 import { askPromotion } from './promotion.js';
@@ -123,13 +123,13 @@ function isTrivialEndgameFor(userIsWhiteSide, fen) {
 function checkUserWin() {
   const fen = chess.fen();
   const halfMove = parseInt(fen.split(' ')[4] || '0');
+  if (chess.isCheckmate()) {
+    // It's whoever-just-moved who delivered mate. If the person now to move
+    // is NOT the user, then the user just delivered mate.
+    if (!userTurn()) return { outcome: 'success', reason: 'Checkmate.' };
+    return { outcome: 'fail', reason: 'You were checkmated.' };
+  }
   if (objective === 'checkmate') {
-    if (chess.isCheckmate()) {
-      // It's whoever-just-moved who delivered mate. If the person now to move
-      // is NOT the user, then the user just delivered mate.
-      if (!userTurn()) return { outcome: 'success', reason: 'Checkmate!' };
-      return { outcome: 'fail', reason: 'You were checkmated.' };
-    }
     // Only check trivial-endgame conversion AFTER the opponent moves (i.e. when
     // it's the user's turn again), so the opponent has had a chance to capture a
     // hanging major piece.
@@ -140,16 +140,12 @@ function checkUserWin() {
     if (chess.isStalemate())           return { outcome: 'fail', reason: 'Stalemate.' };
     if (chess.isInsufficientMaterial())return { outcome: 'fail', reason: 'Insufficient material.' };
     if (chess.isThreefoldRepetition()) return { outcome: 'fail', reason: 'Threefold repetition.' };
-    if (halfMove >= 100)               return { outcome: 'fail', reason: '50 moves.' };
+    if (chess.isDrawByFiftyMoves())    return { outcome: 'fail', reason: '50 moves.' };
   } else { // objective === 'draw'
-    if (chess.isCheckmate()) {
-      if (!userTurn()) return { outcome: 'fail', reason: 'You delivered checkmate — not a draw.' };
-      return { outcome: 'fail', reason: 'You were checkmated.' };
-    }
     if (chess.isStalemate())           return { outcome: 'success', reason: 'Stalemate.' };
     if (chess.isInsufficientMaterial())return { outcome: 'success', reason: 'Insufficient material.' };
     if (chess.isThreefoldRepetition()) return { outcome: 'success', reason: 'Threefold repetition.' };
-    if (halfMove >= 100)               return { outcome: 'success', reason: '50 moves.' };
+    if (chess.isDrawByFiftyMoves())    return { outcome: 'success', reason: '50 moves.' };
   }
   return null;
 }
