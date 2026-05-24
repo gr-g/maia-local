@@ -387,17 +387,14 @@ async function pickOpponentMove(classification, maia, maiaDt) {
 
   let subset = legal;
   if (classification.bestMoves && classification.bestMoves.length) {
-    const moves = classification.bestMoves; // Array of {uci, dtz}
+    const moves = classification.bestMoves; // Array of {uci, dtz, dtm}
 
     if (classification.summary === 'losing') {
-      // Maia is losing, filter to exclude moves that make it too easy for the player:
-      // - moves with dtz <= maxDtz - 10
-      // - moves with dtz <= 1 if maxDtz > 1
+      // Maia is losing, filter to keep only moves that don't make it too easy for the player:
+      // - moves with dtz > maxDtz - 5 or moves with dtm > maxDtm - 5
       const maxDtz = Math.max(...moves.map(m => m.dtz));
-      let filtered = moves.filter(m => m.dtz > maxDtz - 10);
-      if (maxDtz > 1) {
-        filtered = filtered.filter(m => m.dtz > 1)
-      }
+      const maxDtm = Math.max(...moves.map(m => m.dtm));
+      let filtered = moves.filter(m => m.dtz > maxDtz - 5 || m.dtm > maxDtm - 5);
       subset = filtered.map(m => m.uci);
     } else {
       // Maia is winning or drawing: take all best moves
@@ -407,7 +404,8 @@ async function pickOpponentMove(classification, maia, maiaDt) {
 
   // Restrict Maia policy to subset and sample
   const restricted = restrictPolicy(maia.policy, subset);
-  const picked = samplePolicy(restricted);
+  const r = Math.random();
+  const picked = samplePolicy(restricted, r);
   if (picked && legal.includes(picked)) {
     // Show moves from restricted policy for transparency
     const top = Object.entries(restricted).sort((a,b) => b[1]-a[1])
@@ -418,6 +416,7 @@ async function pickOpponentMove(classification, maia, maiaDt) {
         return `${san} ${(p*100).toFixed(1)}%`;
       }).join(' · ');
     $('maia-info').textContent = `Model inference run in ${maiaDt} ms. Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
+    //$('maia-info').textContent = `${r} ${top}; ${JSON.stringify(classification.bestMoves)}`;
     return picked;
   }
   // Fallback: uniform-random over legal

@@ -226,13 +226,13 @@ export class MaiaEngine extends EventTarget {
 // ── Utility: sample from policy ──────────────────────────────────────────────
 
 /** Sample a UCI move from a {move: prob} dict. */
-export function samplePolicy(policy) {
+export function samplePolicy(policy, random_number) {
   const entries = Object.entries(policy);
   if (entries.length === 0) return null;
 
   const sum = entries.reduce((a, [,p]) => a + p, 0);
-  if (sum === 0) return entries[Math.floor(Math.random() * entries.length)][0];
-  let r = Math.random() * sum;
+  if (sum === 0) return entries[Math.floor(random_number * entries.length)][0];
+  let r = random_number * sum;
   for (const [m, p] of entries) {
     r -= p;
     if (r <= 0) return m;
