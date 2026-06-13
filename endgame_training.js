@@ -381,42 +381,155 @@ async function pickOpponentMove(classification, maia, maiaDt) {
   const legal = chess.moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
   if (!legal.length) return null;
 
-  let subset = legal;
-  if (classification.bestMoves && classification.bestMoves.length) {
-    const moves = classification.bestMoves; // Array of {uci, dtz, dtm}
+  // Restrict Maia policy to best moves (which is all moves when losing)
+  const subset = (classification.bestMoves && classification.bestMoves.length)
+    ? classification.bestMoves.map(m => m.uci)
+    : legal;
 
-    if (classification.summary === 'losing') {
-      // Maia is losing, filter to keep only moves that don't make it too easy for the player:
-      // - moves with dtz > maxDtz - 5 or moves with dtm > maxDtm - 5
-      const maxDtz = Math.max(...moves.map(m => m.dtz));
-      const maxDtm = Math.max(...moves.map(m => m.dtm));
-      let filtered = moves.filter(m => m.dtz > maxDtz - 5 || m.dtm > maxDtm - 5);
-      subset = filtered.map(m => m.uci);
-    } else {
-      // Maia is winning or drawing: take all best moves
-      subset = moves.map(m => m.uci);
-    }
+  let restricted = restrictPolicy(maia.policy, subset);
+
+  if (classification.summary === 'losing' && classification.bestMoves && classification.bestMoves.length) {
+    // Tweak the move selection for losing moves to exclude bad moves (which allow the user
+    // to win too quickly) and to boost resilient moves.
+    restricted = excludeBadMoves(restricted, classification.bestMoves);
+    restricted = boostResilientMoves(restricted, classification.bestMoves, 0.3);
   }
 
-  // Restrict Maia policy to subset and sample
-  const restricted = restrictPolicy(maia.policy, subset);
   const r = Math.random();
   const picked = samplePolicy(restricted, r);
   if (picked && legal.includes(picked)) {
     // Show moves from restricted policy for transparency
-    const top = Object.entries(restricted).sort((a,b) => b[1]-a[1])
+    const top = Object.entries(restricted)
+      .filter(([uci, p]) => p > 0.0001)
+      .sort((a,b) => b[1]-a[1])
       .map(([uci,p]) => {
         const move = chess.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || 'q' });
         const san = move ? move.san : uci;
         if (move) chess.undo();
         return `${san} ${(p*100).toFixed(1)}%`;
       }).join(' · ');
-    $('maia-info').textContent = `Model inference run in ${maiaDt} ms. Maia chose among ${subset.length} ${classification.summary || 'legal'} move(s): ${top}`;
+    const activeMovesCount = Object.values(restricted).filter(p => p > 0.0001).length;
+    $('maia-info').textContent = `Model inference run in ${maiaDt} ms. Maia chose among ${activeMovesCount} ${classification.summary || 'legal'} move(s): ${top}`;
     //$('maia-info').textContent = `${r} ${top}; ${JSON.stringify(classification.bestMoves)}`;
     return picked;
   }
   // Fallback: uniform-random over legal
   return legal[Math.floor(Math.random() * legal.length)];
+}
+
+/**
+ * Sets the probability of bad moves (dtz <= maxDtz - 5 && dtm <= maxDtm - 5) to zero
+ * and renormalizes the remaining probabilities.
+ */
+function excludeBadMoves(policy, moves) {
+  const maxDtz = Math.max(...moves.map(m => m.dtz));
+  const maxDtm = Math.max(...moves.map(m => m.dtm));
+
+  // Good moves are those with dtz > maxDtz - 5 || dtm > maxDtm - 5.
+  // Bad moves are the rest.
+  const goodUcis = new Set(
+    moves.filter(m => m.dtz > maxDtz - 5 || m.dtm > maxDtm - 5).map(m => m.uci)
+  );
+
+  const updated = {};
+  let sum = 0;
+
+  for (const [uci, prob] of Object.entries(policy)) {
+    if (goodUcis.has(uci)) {
+      updated[uci] = prob;
+      sum += prob;
+    } else {
+      updated[uci] = 0;
+    }
+  }
+
+  if (sum === 0) {
+    // Fallback: uniform over good moves
+    const u = 1 / (goodUcis.size || 1);
+    for (const uci of Object.keys(policy)) {
+      updated[uci] = goodUcis.has(uci) ? u : 0;
+    }
+  } else {
+    // Renormalize
+    for (const uci of Object.keys(updated)) {
+      updated[uci] /= sum;
+    }
+  }
+
+  return updated;
+}
+
+/**
+ * Ensures that most resilient moves (both dtz=maxDtz and dtm=maxDtm)
+ * have an aggregate probability of at least minProb.
+ */
+function boostResilientMoves(policy, moves, minProb) {
+  const maxDtz = Math.max(...moves.map(m => m.dtz));
+  const maxDtm = Math.max(...moves.map(m => m.dtm));
+  const resilientMoves = moves.filter(m => m.dtz === maxDtz && m.dtm === maxDtm);
+  if (resilientMoves.length === 0) {
+    return policy;
+  }
+
+  const resilientUcis = new Set(resilientMoves.map(m => m.uci));
+
+  // Ensure all resilient moves are in the policy (even if with 0 prob)
+  const updated = { ...policy };
+  for (const uci of resilientUcis) {
+    if (!(uci in updated)) {
+      updated[uci] = 0;
+    }
+  }
+
+  // Calculate current aggregate probability of resilient moves
+  let resilientSum = 0;
+  let nonResilientSum = 0;
+  for (const [uci, prob] of Object.entries(updated)) {
+    if (resilientUcis.has(uci)) {
+      resilientSum += prob;
+    } else {
+      nonResilientSum += prob;
+    }
+  }
+
+  if (resilientSum < minProb) {
+    const targetResilientSum = minProb;
+    const targetNonResilientSum = 1 - targetResilientSum;
+
+    // Adjust resilient moves
+    if (resilientSum === 0) {
+      // Distribute targetResilientSum uniformly among resilient moves in policy
+      const count = Object.keys(updated).filter(uci => resilientUcis.has(uci)).length;
+      if (count > 0) {
+        const share = targetResilientSum / count;
+        for (const uci of resilientUcis) {
+          if (uci in updated) {
+            updated[uci] = share;
+          }
+        }
+      }
+    } else {
+      // Scale existing resilient probabilities
+      const scale = targetResilientSum / resilientSum;
+      for (const uci of resilientUcis) {
+        if (uci in updated) {
+          updated[uci] *= scale;
+        }
+      }
+    }
+
+    // Adjust non-resilient moves
+    if (nonResilientSum > 0) {
+      const scale = targetNonResilientSum / nonResilientSum;
+      for (const uci of Object.keys(updated)) {
+        if (!resilientUcis.has(uci)) {
+          updated[uci] *= scale;
+        }
+      }
+    }
+  }
+
+  return updated;
 }
 
 function applyOpponentMove(uci) {
