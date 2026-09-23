@@ -98,7 +98,7 @@ function updateLichessLink() {
   $('lichess-analysis').href = `https://lichess.org/analysis/pgn/${encodedPgn}`;
 }
 
-// ── Material-based trivial-endgame detection (for objective=checkmate user-success) ─
+// ── Material-based conversion detection (user-success, checked after opponent moves) ─
 function pieceCounts(fen) {
   const pos = fen.split(' ')[0];
   const c = { P:0,N:0,B:0,R:0,Q:0,K:0, p:0,n:0,b:0,r:0,q:0,k:0 };
@@ -118,6 +118,23 @@ function isTrivialEndgameFor(userIsWhiteSide, fen) {
   const userHasMajor = userIsWhiteSide ? (c.Q >= 1 || c.R >= 1) : (c.q >= 1 || c.r >= 1);
   return userHasMajor;
 }
+// No pawns left, and material changed compared to the start position: either
+// the start had pawns (so they were captured or promoted), or pieces were captured.
+function isSimplifiedPawnless(fen) {
+  const c = pieceCounts(fen);
+  if (c.P || c.p) return false;
+  const s = pieceCounts(startFen || STARTPOS);
+  if (s.P || s.p) return true;
+  const pieces = x => x.N + x.B + x.R + x.Q + x.n + x.b + x.r + x.q;
+  return pieces(c) < pieces(s);
+}
+// Compare the user's major pieces with the opponent's: queens first, then rooks.
+// Returns >0 if the user has more, 0 if equal, <0 if fewer.
+function compareMajors(userIsWhiteSide, fen) {
+  const c = pieceCounts(fen);
+  const [uQ, uR, oQ, oR] = userIsWhiteSide ? [c.Q, c.R, c.q, c.r] : [c.q, c.r, c.Q, c.R];
+  return uQ !== oQ ? uQ - oQ : uR - oR;
+}
 
 // ── Local user-success / draw detection (no tablebase needed) ────────────────────
 function checkUserWin() {
@@ -130,12 +147,6 @@ function checkUserWin() {
     return { outcome: 'fail', reason: 'You were checkmated.' };
   }
   if (objective === 'checkmate') {
-    // Only check trivial-endgame conversion AFTER the opponent moves (i.e. when
-    // it's the user's turn again), so the opponent has had a chance to capture a
-    // hanging major piece.
-    if (userTurn() && isTrivialEndgameFor(userIsWhite(), fen)) {
-      return { outcome: 'success', reason: 'Converted to a winning endgame.' };
-    }
     // Local draw checks are failures for the checkmate objective
     if (chess.isStalemate())           return { outcome: 'fail', reason: 'Stalemate.' };
     if (chess.isInsufficientMaterial())return { outcome: 'fail', reason: 'Insufficient material.' };
@@ -337,9 +348,11 @@ async function doOpponentMove() {
 
     let classification = { bestMoves: [], summary: null, allMoves: [] };
     let tbError = null;
+    let userFail = null;
+    let oppOutcome = null;
     if (tb && !tb.__err) {
       classification = classifyMoves(tb);
-      const oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
+      oppOutcome = rootOutcome(tb); // from opp POV (since opp is STM)
       if (classification.summary) {
         $('tb-info').textContent = `Tablebase queried in ${tbDt} ms. Maia has a ${classification.summary} position.`;
       } else {
@@ -350,7 +363,6 @@ async function doOpponentMove() {
       //   opp=win  → user is losing     → fail always
       //   opp=draw → user is drawing    → fail only if objective=checkmate
       //   opp=loss → user is winning    → no fail
-      let userFail = null;
       if (oppOutcome === 'win')  userFail = 'You are in a losing position.';
       else if (oppOutcome === 'draw' && objective === 'checkmate') userFail = 'Opponent can force a draw.';
       if (userFail) showResult('fail', userFail);
@@ -368,6 +380,17 @@ async function doOpponentMove() {
     // After opponent moves, check local user conditions that can fire on opp turn (e.g. opp stalemates user-objective-draw)
     const post = checkUserWin();
     if (post) { endGame(post.outcome, post.reason); return; }
+
+    // Non-terminal success: the user can keep playing. Checked only after the
+    // opponent's move, so a hanging piece has had the chance to be captured.
+    const postFen = chess.fen();
+    if (isTrivialEndgameFor(userIsWhite(), postFen)) {
+      showResult('success', 'Converted to a winning endgame.');
+    } else if (isSimplifiedPawnless(postFen) && !tbError && !userFail) {
+      const majors = compareMajors(userIsWhite(), postFen);
+      if (oppOutcome === 'loss' && majors > 0)       showResult('success', 'Converted to a winning endgame.');
+      else if (oppOutcome === 'draw' && majors >= 0) showResult('success', 'Converted to a drawing endgame.');
+    }
   } catch (err) {
     $('maia-info').textContent = 'Opponent-move error: ' + err.message;
   } finally {
